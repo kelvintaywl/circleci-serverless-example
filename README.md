@@ -24,4 +24,4 @@ I was able to [deploy indeed to AWS with CircleCI and Serverless-Framework Orb s
 
 Please see [my CircleCI config](.circleci/config.yml)
 
-![Deployed Function](deployed_on_aws.png)
+![Deployed Function](deployed.png)
