@@ -1,0 +1,39 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@4.7.0
+  sls: circleci/serverless-framework@1.0.1
+
+
+commands:
+  serverless_deploy:
+    description: '(Mock) Deploy'
+    parameters:
+      stage:
+        type: string
+        default: 'development'
+    steps:
+      - checkout
+      - sls/setup
+      - run:
+          name: checking Serverless tool
+          command: |
+            command -v sls
+            command -v serverless
+      - run:
+          name: print Serverles project config
+          command: |
+            cd src/service/core
+            SLS_DEBUG=* npx sls print --stage << parameters.stage >>
+
+jobs:
+  deploy_development:
+    executor: sls/default
+    steps:
+      - serverless_deploy:
+          stage: 'development'
+
+workflows:
+  main:
+    jobs:
+      - deploy_development
