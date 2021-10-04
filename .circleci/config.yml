@@ -23,7 +23,7 @@ commands:
       - run:
           name: print Serverles project config
           command: |
-            cd src/service/core
+            cd src/services/core
             SLS_DEBUG=* npx sls print --stage << parameters.stage >>
 
 jobs:
