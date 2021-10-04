@@ -24,7 +24,12 @@ commands:
           name: print Serverles project config
           command: |
             cd src/services/core
-            SLS_DEBUG=* npx sls print --stage << parameters.stage >>
+            SLS_DEBUG=* sls print --stage << parameters.stage >>
+      - run:
+          name: deploy
+          command: |
+            cd src/services/core
+            SLS_DEBUG=* sls deploy --stage << parameters.stage >>
 
 jobs:
   deploy_development:
