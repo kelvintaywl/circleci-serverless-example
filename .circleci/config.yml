@@ -26,10 +26,16 @@ commands:
             cd src/services/core
             SLS_DEBUG=* sls print --stage << parameters.stage >>
       - run:
-          name: deploy
+          # Interestingly, setting "max-old-space-size" via NODE_OPTIONS env var causes `sls` to exit 4,
+          # even for `sls print` command, before we even discuss about deployment.
+          environment:
+            # max-old-space-size: 2GB
+            # trace-exit: allows us to print the Node/V8 error stacktrace
+            NODE_OPTIONS: '--max-old-space-size=2048 --trace-exit'
+          name: print Serverles project config again, with NODE_OPTIONS env var
           command: |
             cd src/services/core
-            SLS_DEBUG=* sls deploy --stage << parameters.stage >>
+            SLS_DEBUG=* sls print --stage << parameters.stage >>
 
 jobs:
   deploy_development:
