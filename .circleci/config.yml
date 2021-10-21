@@ -7,7 +7,7 @@ orbs:
 
 commands:
   serverless_deploy:
-    description: '(Mock) Deploy'
+    description: 'Deploy using the ServerlessFramework Orb'
     parameters:
       stage:
         type: string
@@ -15,17 +15,17 @@ commands:
     steps:
       - checkout
       - sls/setup
-      - run:
+      - run: &sls_check
           name: checking Serverless tool
           command: |
             command -v sls
             command -v serverless
-      - run:
+      - run: &sls_print_default
           name: print Serverles project config
           command: |
             cd src/services/core
             SLS_DEBUG=* sls print --stage << parameters.stage >>
-      - run:
+      - run: &sls_print_nodeoptions
           # Interestingly, setting "max-old-space-size" via NODE_OPTIONS env var causes `sls` to exit 4,
           # even for `sls print` command, before we even discuss about deployment.
           environment:
@@ -37,14 +37,41 @@ commands:
             cd src/services/core
             SLS_DEBUG=* sls print --stage << parameters.stage >>
 
+  serverless_deploy_without_orb:
+    description: 'Deploy without the ServerlessFramework Orb'
+    parameters:
+      stage:
+        type: string
+        default: 'development'
+    steps:
+      - checkout
+      - run:
+          name: Install Serverless via NPM
+          command: |
+            sudo npm install -g serverless
+      - run:
+          <<: *sls_check
+      - run:
+          <<: *sls_print_default
+      - run:
+          <<: *sls_print_nodeoptions
+
 jobs:
-  deploy_development:
+  deploy_development_with_orb:
     executor: sls/default
     steps:
       - serverless_deploy:
+          stage: 'development'
+  deploy_development_without_orb:
+    executor: sls/default
+    steps:
+      - serverless_deploy_without_orb:
           stage: 'development'
 
 workflows:
   main:
     jobs:
-      - deploy_development
+      - deploy_development_with_orb
+  alternative:
+    jobs:
+      - deploy_development_without_orb
