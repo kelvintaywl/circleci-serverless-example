@@ -1,6 +1,6 @@
 # CircleCI Serverless Example
 
-## How I created the Serverless project?
+## How I created this Serverless project?
 
 ```sh
 # use the right Node runtime via NVM
