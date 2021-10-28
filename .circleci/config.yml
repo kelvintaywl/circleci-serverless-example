@@ -1,44 +1,77 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@4.7.0
   sls: circleci/serverless-framework@1.0.1
+  aws-cli: circleci/aws-cli@2.0.3
 
-
-commands:
+jobs:
   serverless_deploy:
-    description: '(Mock) Deploy'
     parameters:
       stage:
         type: string
         default: 'development'
+      use-serverless-framework-orb:
+        type: boolean
+        default: true
+      node-options:
+        description: 'value to set for NODE_OPTIONS environment variable'
+        type: string
+        default: ''
+    # NOTE: this is essentially cimg/python:3.8-node currently (as of Oct 21, 2021).
+    # See https://circleci.com/developer/orbs/orb/circleci/serverless-framework#executors-default
+    # We can just declare the specific docker image as well.
+    executor: sls/default
     steps:
       - checkout
-      - sls/setup
+      - when:
+          condition: << parameters.use-serverless-framework-orb >>
+          steps:
+            - sls/setup
+      - when:
+          condition:
+            not: << parameters.use-serverless-framework-orb >>
+          steps:
+            - run:
+                name: Install Serverless via NPM
+                command: |
+                  sudo npm install -g serverless
+            # Install AWS CLI, and set up our AWS credentials.
+            # This is the same step taken by the ServerlessFramework orb for AWS deployments
+            - aws-cli/setup
       - run:
-          name: checking Serverless tool
+          name: verify ServerlessFramework CLI tool
           command: |
             command -v sls
             command -v serverless
       - run:
-          name: print Serverles project config
+          environment:
+            NODE_OPTIONS: '<< parameters.node-options >>'
+            SLS_DEBUG: '*'
+          name: verify ServerlessFramework project
           command: |
             cd src/services/core
-            SLS_DEBUG=* sls print --stage << parameters.stage >>
+            sls print --stage << parameters.stage >>
       - run:
-          name: deploy
+          environment:
+            NODE_OPTIONS: '<< parameters.node-options >>'
+            SLS_DEBUG: '*'
+          name: Deploy ServerlessFramework project
           command: |
             cd src/services/core
-            SLS_DEBUG=* sls deploy --stage << parameters.stage >>
-
-jobs:
-  deploy_development:
-    executor: sls/default
-    steps:
-      - serverless_deploy:
-          stage: 'development'
+            sls deploy --stage << parameters.stage >>
 
 workflows:
   main:
     jobs:
-      - deploy_development
+      # We expect this to fail due to odd behaviour (exit 4) when setting max-old-space-size for sls binary.
+      # Interestingly, setting "max-old-space-size" via NODE_OPTIONS env var causes `sls` to exit 4,
+      # even for `sls print` command, before we even discuss about deployment.
+      - serverless_deploy:
+          use-serverless-framework-orb: true
+          node-options: '--max-old-space-size=4096 --trace-exit'
+  alternative:
+    jobs:
+      # We expect this to pass with max-old-space-size set via NODE_OPTIONS env var going through
+      - serverless_deploy:
+          use-serverless-framework-orb: false
+          node-options: '--max-old-space-size=4096 --trace-exit'
